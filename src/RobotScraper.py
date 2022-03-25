@@ -43,6 +43,8 @@ class RobotScraper:
     def get_df(self):
         return self.df_games_calendar
 
+    def save_df(self, path = '../data/'):
+        self.df_games_calendar.to_csv(path + 'NBACalendarDataFrame.csv')  
 
     @staticmethod
     def convert_day_ESP_ENG(day):
