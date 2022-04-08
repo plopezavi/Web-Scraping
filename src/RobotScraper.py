@@ -56,6 +56,7 @@ class RobotScraper:
                     self.df_games_calendar = self.df_games_calendar.append(dict_game, ignore_index=True)
 
 
+
     def get_df_games(self):
         return self.df_games_calendar
 

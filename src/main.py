@@ -38,7 +38,7 @@ def end_week_day(date_arg):
 def get_init_end():
 
     # Default values
-    init_date = 20211018
+    init_date = "20211018"
     end_date = None
 
     if len(sys.argv) > 1:
@@ -58,23 +58,28 @@ def get_init_end():
                 if cont >= len(sys.argv):
                     exe_loop = False
 
+            if end_date is None:
+                end_date = init_date
+
+            init, end = first_week_day(init_date), end_week_day(end_date)
+            return init, end, (end.isocalendar()[1] - init.isocalendar()[1]) + 1, True
+
+        return None, None, None, False
     else:
         print("Is necessary include parameters, try python main.py -h")
+        return None, None, None, False
 
-    if end_date is None:
-        end_date = init_date
 
-    init, end = first_week_day(init_date), end_week_day(end_date)
-    return init, end, (end.isocalendar()[1] - init.isocalendar()[1]) + 1
 
-init, end, num_semanas = get_init_end()
+init, end, num_semanas, check_param = get_init_end()
 
-rs = RobotScraper()
-# rs = RobotScraper("https://espndeportes.espn.com/basquetbol/nba/calendario/_/fecha/" + str(10000*init.year + 100*init.month + init.day))
+if check_param:
+    rs = RobotScraper()
+    # rs = RobotScraper("https://espndeportes.espn.com/basquetbol/nba/calendario/_/fecha/" + str(10000*init.year + 100*init.month + init.day))
 
-for i in range(0, num_semanas):
-    rs.set_page("https://espndeportes.espn.com", "/basquetbol/nba/calendario/_/fecha/" + str(10000*(init + (i * timedelta(days=7))).year + 100*(init + (i * timedelta(days=7))).month + (init + (i * timedelta(days=7))).day))
-    rs.init_extract()
+    for i in range(0, num_semanas):
+        rs.set_page("https://espndeportes.espn.com", "/basquetbol/nba/calendario/_/fecha/" + str(10000*(init + (i * timedelta(days=7))).year + 100*(init + (i * timedelta(days=7))).month + (init + (i * timedelta(days=7))).day))
+        rs.init_extract()
 
-print(rs.get_df_games())
-# rs.save_df()
+    print(rs.get_df_games())
+    # rs.save_df()
