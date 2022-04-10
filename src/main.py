@@ -86,4 +86,5 @@ if check_param:
 
     # Extrae el detalle de los jugadores de cada partido
     rs.init_extract_players_detail()
-    # rs.save_df()
+
+    rs.join_info_df()

@@ -22,6 +22,9 @@ class RobotScraper:
     #     self.soup = BeautifulSoup(page.content, 'html.parser')
     #     self.df_games_calendar = pd.DataFrame(columns=['Date', 'Away Team', 'Home Team', 'Result', 'Max Winner', 'Pts Winner', 'Max Loser', 'Pts Loser'])
 
+    def get_id_game(self, row):
+        url = row['URL Game']
+        return url[url.find("juegoId=") + 8:]
 
     def set_page(self, hostname, extension):
         self.hostname = hostname
@@ -248,14 +251,30 @@ class RobotScraper:
                     self.df_games_detailed_players = self.df_games_detailed_players.append(dict_away_team, ignore_index=True)
 
 
+    def join_info_df(self):
+
+        self.df_games_calendar['Id Game'] = self.df_games_calendar.apply(lambda row: self.get_id_game(row), axis=1)
+        self.df_games_calendar = self.df_games_calendar.drop(['URL Game'], axis=1)
+
+        # self.df_games_calendar.set_index('Id Game')
+        # self.df_games_detailed_players.set_index('Id Game')
+
+        # print(self.df_games_detailed_players.dtypes)
+
+        df = pd.merge(self.df_games_calendar, self.df_games_detailed_players, on = 'Id Game', how='left')
+        self.save_df(df)
+        # df = self.df_games_calendar.join(self.df_games_detailed_players, on = 'Id Game')
+        # print(df)
+
+
     def get_df_games(self):
         return self.df_games_calendar
 
     def get_df_games_detailed_players(self):
         return self.df_games_detailed_players
 
-    def save_df(self, path = '../data/'):
-        self.df_games_calendar.to_csv(path + 'NBACalendarDataFrame.csv')
+    def save_df(self, df, path = '../data/'):
+        df.to_csv(path + 'NBACalendarDataFrame.csv')
 
     @staticmethod
     def convert_day_ESP_ENG(day):
