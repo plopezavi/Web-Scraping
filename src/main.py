@@ -79,7 +79,11 @@ if check_param:
 
     for i in range(0, num_semanas):
         rs.set_page("https://espndeportes.espn.com", "/basquetbol/nba/calendario/_/fecha/" + str(10000*(init + (i * timedelta(days=7))).year + 100*(init + (i * timedelta(days=7))).month + (init + (i * timedelta(days=7))).day))
+
+        # Extrae los datos generales del calendario
         rs.init_extract()
 
-    print(rs.get_df_games())
+
+    # Extrae el detalle de los jugadores de cada partido
+    rs.init_extract_players_detail()
     # rs.save_df()
