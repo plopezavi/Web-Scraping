@@ -15,6 +15,7 @@ class RobotScraper:
         # page = requests.get(url)
         # self.soup = BeautifulSoup(page.content, 'html.parser')
         self.df_games_calendar = pd.DataFrame(columns=['Date', 'Away Team', 'Home Team', 'Result', 'Max Winner', 'Pts Winner', 'Max Loser', 'Pts Loser', 'URL Game'])
+        self.df_games_detailed_calendar = pd.DataFrame(columns=['Id Game', 'FG AT', 'FG HT', 'Field Goal % AT', 'Field Goal % HT', '3PT AT', '3PT HT', 'Three Point % AT', 'Three Point % HT', 'FT AT', 'FT HT', 'Free Throw % AT', 'Free Throw % HT', 'Rebounds AT', 'Rebounds HT', 'Offensive Rebounds AT', 'Offensive Rebounds HT', 'Defensive Rebounds AT', 'Defensive Rebounds HT', 'Assists AT', 'Assists HT', 'Steals AT', 'Steals HT', 'Blocks AT', 'Blocks HT', 'Total Turnovers AT', 'Total Turnovers HT', 'Points Off Turnovers AT', 'Points Off Turnovers HT', 'Fast Break Points AT', 'Fast Break Points HT', 'Points in Paint AT', 'Points in Paint HT', 'Fouls AT', 'Fouls HT', 'Technical Fouls AT', 'Technical Fouls HT', 'Flagrant Fouls AT', 'Flagrant Fouls HT', 'Largest Lead AT', 'Largest Lead HT'])
         self.df_games_detailed_players = pd.DataFrame(columns=['Id Game', 'Team', 'Name', 'Position', 'First/Substitute', 'MIN', 'FG', '% TC3', 'TL A-I', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'PÉR', 'PF', '+/-', 'PTS'])
 
     # def __init__(self, url):
@@ -331,7 +332,7 @@ class RobotScraper:
 
     def get_df_games_detailed_players(self):
         return self.df_games_detailed_players
-        
+
     def get_df_games_detail(self):
         return self.df_games_detailed_calendar
 
