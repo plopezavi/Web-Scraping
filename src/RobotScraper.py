@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import requests
 import pandas as pd
+import progressbar
 
 class RobotScraper:
     hostname = None
@@ -24,8 +25,12 @@ class RobotScraper:
     #     self.df_games_calendar = pd.DataFrame(columns=['Date', 'Away Team', 'Home Team', 'Result', 'Max Winner', 'Pts Winner', 'Max Loser', 'Pts Loser'])
 
     def get_id_game(self, row):
-        url = row['URL Game']
-        return url[url.find("juegoId=") + 8:]
+
+        if row['URL Game'] is not None:
+            url = row['URL Game']
+            return url[url.find("juegoId=") + 8:]
+        else:
+            return '-1'
 
     def set_page(self, hostname, extension):
         self.hostname = hostname
@@ -37,10 +42,14 @@ class RobotScraper:
 
 
     def init_extract(self):
+
+        print("Init extract games data in week", datetime.strptime(self.extension[self.extension.find("/_/fecha/") + 9:], '%Y%m%d').date())
+
         main_content = self.soup.find('div', class_="Wrapper Card__Content overflow-visible").find_all('div', class_="mt3")[1]
         weekly_content = main_content.find_all(['div', 'section'], class_ = ["ScheduleTables mb5 ScheduleTables--nba", "EmptyTable"])
 
         for daily_content in weekly_content:
+
             if daily_content.name == "div" and daily_content['class'][0] == "ScheduleTables":
                 date_raw = daily_content.find('div', class_ = "Table__Title").string
                 date = datetime.strptime(self.convert_day_ESP_ENG(date_raw), '%d de %B, %Y')
@@ -49,82 +58,128 @@ class RobotScraper:
                 daily_games = daily_content.find('tbody', class_ = "Table__TBODY").find_all('tr', class_ = "Table__TR Table__TR--sm Table__even")
 
                 for game in daily_games:
+
                     columns = game.find_all('td')
 
-                    away_team = columns[0].find_all('a')[1].string
-                    home_team = columns[1].find_all('a')[1].string
-                    result = columns[2].find('a').string
-                    url_game = columns[2].find('a')['href']
-                    max_winner = columns[3].find('a').string
-                    pts_winner = columns[3].find('span').text
-                    max_loser = columns[4].find('a').string
-                    pts_loser = columns[4].find('span').text
+                    if columns[2].find('a').string.lower() == "pospuesto":
+                        if len(columns[0].find_all('a')) == 1:
+                            away_team = columns[0].find('span', class_ = 'Table__Team away').find('span').text
+                        else:
+                            away_team = columns[0].find_all('a')[1].string
+
+                        if len(columns[1].find_all('a')) == 1:
+                            home_team = columns[1].find('span', class_ = 'Table__Team').find('span').text
+                        else:
+                            home_team = columns[1].find_all('a')[1].string
+
+                        result = columns[2].find('a').string
+                        url_game = None
+                        max_winner = None
+                        pts_winner = None
+                        max_loser = None
+                        pts_loser = None
+                    else:
+                        if len(columns[0].find_all('a')) == 1:
+                            away_team = columns[0].find('span', class_ = 'Table__Team away').find('span').text
+                        else:
+                            away_team = columns[0].find_all('a')[1].string
+
+                        if len(columns[1].find_all('a')) == 1:
+                            home_team = columns[1].find('span', class_ = 'Table__Team').find('span').text
+                        else:
+                            home_team = columns[1].find_all('a')[1].string
+
+                        result = columns[2].find('a').string
+                        url_game = columns[2].find('a')['href']
+                        max_winner = columns[3].find('a').string
+                        pts_winner = columns[3].find('span').text
+                        max_loser = columns[4].find('a').string
+                        pts_loser = columns[4].find('span').text
 
                     dict_game = {'Date': date, 'Away Team': away_team, 'Home Team': home_team, 'Result': result, 'Max Winner': max_winner, 'Pts Winner': pts_winner, 'Max Loser': max_loser, 'Pts Loser': pts_loser, 'URL Game': url_game}
                     self.df_games_calendar = self.df_games_calendar.append(dict_game, ignore_index=True)
 
     def init_extract_game_detail(self):
 
+        print("Init extract detail games data...")
+
+        bar = progressbar.ProgressBar(maxval=len(self.df_games_calendar), widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+
         for index, row in self.df_games_calendar.iterrows():
-            # Componemos la nueva URL, modificando la extension para mostrar la pestaña deseada
-            url = self.hostname + row['URL Game'].replace("/juego?", "/duelo?")
-            id_game = url[url.find("juegoId=") + 8:]
 
-            page = requests.get(url)
-            self.soup = BeautifulSoup(page.content, 'html.parser')
+            if row['URL Game'] is not None:
 
-            main_content = self.soup.find('div', id="gamepackage-wrap").find('div', class_ = "col-two").find('tbody').find_all('tr')
+                # Componemos la nueva URL, modificando la extension para mostrar la pestaña deseada
+                url = self.hostname + row['URL Game'].replace("/juego?", "/duelo?")
+                id_game = url[url.find("juegoId=") + 8:]
 
-            dict_game = {
-                'Id Game': id_game
-                , 'FG AT': main_content[0].find_all('td')[1].string.strip()
-                , 'FG HT': main_content[0].find_all('td')[2].string.strip()
-                , 'Field Goal % AT': main_content[1].find_all('td')[1].string.strip()
-                , 'Field Goal % HT': main_content[1].find_all('td')[2].string.strip()
-                , '3PT AT': main_content[2].find_all('td')[1].string.strip()
-                , '3PT HT': main_content[2].find_all('td')[2].string.strip()
-                , 'Three Point % AT': main_content[3].find_all('td')[1].string.strip()
-                , 'Three Point % HT': main_content[3].find_all('td')[2].string.strip()
-                , 'FT AT': main_content[4].find_all('td')[1].string.strip()
-                , 'FT HT': main_content[4].find_all('td')[2].string.strip()
-                , 'Free Throw % AT': main_content[5].find_all('td')[1].string.strip()
-                , 'Free Throw % HT': main_content[5].find_all('td')[2].string.strip()
-                , 'Rebounds AT': main_content[6].find_all('td')[1].string.strip()
-                , 'Rebounds HT': main_content[6].find_all('td')[2].string.strip()
-                , 'Offensive Rebounds AT': main_content[7].find_all('td')[1].string.strip()
-                , 'Offensive Rebounds HT': main_content[7].find_all('td')[2].string.strip()
-                , 'Defensive Rebounds AT': main_content[8].find_all('td')[1].string.strip()
-                , 'Defensive Rebounds HT': main_content[8].find_all('td')[2].string.strip()
-                , 'Assists AT': main_content[9].find_all('td')[1].string.strip()
-                , 'Assists HT': main_content[9].find_all('td')[2].string.strip()
-                , 'Steals AT': main_content[10].find_all('td')[1].string.strip()
-                , 'Steals HT': main_content[10].find_all('td')[2].string.strip()
-                , 'Blocks AT': main_content[11].find_all('td')[1].string.strip()
-                , 'Blocks HT': main_content[11].find_all('td')[2].string.strip()
-                , 'Total Turnovers AT': main_content[12].find_all('td')[1].string.strip()
-                , 'Total Turnovers HT': main_content[12].find_all('td')[2].string.strip()
-                , 'Points Off Turnovers AT': main_content[13].find_all('td')[1].string.strip()
-                , 'Points Off Turnovers HT': main_content[13].find_all('td')[2].string.strip()
-                , 'Fast Break Points AT': main_content[14].find_all('td')[1].string.strip()
-                , 'Fast Break Points HT': main_content[14].find_all('td')[2].string.strip()
-                , 'Points in Paint AT': main_content[15].find_all('td')[1].string.strip()
-                , 'Points in Paint HT': main_content[15].find_all('td')[2].string.strip()
-                , 'Fouls AT': main_content[16].find_all('td')[1].string.strip()
-                , 'Fouls HT': main_content[16].find_all('td')[2].string.strip()
-                , 'Technical Fouls AT': main_content[17].find_all('td')[1].string.strip()
-                , 'Technical Fouls HT': main_content[17].find_all('td')[2].string.strip()
-                , 'Flagrant Fouls AT': main_content[18].find_all('td')[1].string.strip()
-                , 'Flagrant Fouls HT': main_content[18].find_all('td')[2].string.strip()
-                , 'Largest Lead AT': main_content[19].find_all('td')[1].string.strip()
-                , 'Largest Lead HT': main_content[19].find_all('td')[2].string.strip()
-            }
+                page = requests.get(url)
+                self.soup = BeautifulSoup(page.content, 'html.parser')
 
-            self.df_games_detailed_calendar = self.df_games_detailed_calendar.append(dict_game, ignore_index=True)
+                main_content = self.soup.find('div', id="gamepackage-wrap").find('div', class_ = "col-two").find('tbody').find_all('tr')
 
+                dict_game = {
+                    'Id Game': id_game
+                    , 'FG AT': main_content[0].find_all('td')[1].string.strip()
+                    , 'FG HT': main_content[0].find_all('td')[2].string.strip()
+                    , 'Field Goal % AT': main_content[1].find_all('td')[1].string.strip()
+                    , 'Field Goal % HT': main_content[1].find_all('td')[2].string.strip()
+                    , '3PT AT': main_content[2].find_all('td')[1].string.strip()
+                    , '3PT HT': main_content[2].find_all('td')[2].string.strip()
+                    , 'Three Point % AT': main_content[3].find_all('td')[1].string.strip()
+                    , 'Three Point % HT': main_content[3].find_all('td')[2].string.strip()
+                    , 'FT AT': main_content[4].find_all('td')[1].string.strip()
+                    , 'FT HT': main_content[4].find_all('td')[2].string.strip()
+                    , 'Free Throw % AT': main_content[5].find_all('td')[1].string.strip()
+                    , 'Free Throw % HT': main_content[5].find_all('td')[2].string.strip()
+                    , 'Rebounds AT': main_content[6].find_all('td')[1].string.strip()
+                    , 'Rebounds HT': main_content[6].find_all('td')[2].string.strip()
+                    , 'Offensive Rebounds AT': main_content[7].find_all('td')[1].string.strip()
+                    , 'Offensive Rebounds HT': main_content[7].find_all('td')[2].string.strip()
+                    , 'Defensive Rebounds AT': main_content[8].find_all('td')[1].string.strip()
+                    , 'Defensive Rebounds HT': main_content[8].find_all('td')[2].string.strip()
+                    , 'Assists AT': main_content[9].find_all('td')[1].string.strip()
+                    , 'Assists HT': main_content[9].find_all('td')[2].string.strip()
+                    , 'Steals AT': main_content[10].find_all('td')[1].string.strip()
+                    , 'Steals HT': main_content[10].find_all('td')[2].string.strip()
+                    , 'Blocks AT': main_content[11].find_all('td')[1].string.strip()
+                    , 'Blocks HT': main_content[11].find_all('td')[2].string.strip()
+                    , 'Total Turnovers AT': main_content[12].find_all('td')[1].string.strip()
+                    , 'Total Turnovers HT': main_content[12].find_all('td')[2].string.strip()
+                    , 'Points Off Turnovers AT': main_content[13].find_all('td')[1].string.strip()
+                    , 'Points Off Turnovers HT': main_content[13].find_all('td')[2].string.strip()
+                    , 'Fast Break Points AT': main_content[14].find_all('td')[1].string.strip()
+                    , 'Fast Break Points HT': main_content[14].find_all('td')[2].string.strip()
+                    , 'Points in Paint AT': main_content[15].find_all('td')[1].string.strip()
+                    , 'Points in Paint HT': main_content[15].find_all('td')[2].string.strip()
+                    , 'Fouls AT': main_content[16].find_all('td')[1].string.strip()
+                    , 'Fouls HT': main_content[16].find_all('td')[2].string.strip()
+                    , 'Technical Fouls AT': main_content[17].find_all('td')[1].string.strip()
+                    , 'Technical Fouls HT': main_content[17].find_all('td')[2].string.strip()
+                    , 'Flagrant Fouls AT': main_content[18].find_all('td')[1].string.strip()
+                    , 'Flagrant Fouls HT': main_content[18].find_all('td')[2].string.strip()
+                    , 'Largest Lead AT': main_content[19].find_all('td')[1].string.strip()
+                    , 'Largest Lead HT': main_content[19].find_all('td')[2].string.strip()
+                }
+
+                self.df_games_detailed_calendar = self.df_games_detailed_calendar.append(dict_game, ignore_index=True)
+
+            bar.update(index+1)
+
+        bar.finish()
 
     def init_extract_players_detail(self):
 
-            for index, row in self.df_games_calendar.iterrows():
+        print("Init extract detail players data...")
+
+        bar = progressbar.ProgressBar(maxval=len(self.df_games_calendar), widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+
+        for index, row in self.df_games_calendar.iterrows():
+
+            if row['URL Game'] is not None:
+
                 # Componemos la nueva URL, modificando la extension para mostrar la pestaña deseada
                 url = self.hostname + row['URL Game'].replace("/juego?juegoId=", "/ficha/_/juegoId/")
                 id_game = url[url.find("juegoId/") + 8:]
@@ -310,21 +365,22 @@ class RobotScraper:
 
                     self.df_games_detailed_players = self.df_games_detailed_players.append(dict_away_team, ignore_index=True)
 
+            bar.update(index+1)
 
-    def join_info_df(self):
+        bar.finish()
+
+    def join_info_df(self, path = '../data/'):
+
+        print("Init join Dataframes...")
 
         self.df_games_calendar['Id Game'] = self.df_games_calendar.apply(lambda row: self.get_id_game(row), axis=1)
         self.df_games_calendar = self.df_games_calendar.drop(['URL Game'], axis=1)
 
-        # self.df_games_calendar.set_index('Id Game')
-        # self.df_games_detailed_players.set_index('Id Game')
+        df = pd.merge(self.df_games_calendar, self.df_games_detailed_calendar, on = 'Id Game', how='left')
+        df = pd.merge(df, self.df_games_detailed_players, on = 'Id Game', how='left')
 
-        # print(self.df_games_detailed_players.dtypes)
-
-        df = pd.merge(self.df_games_calendar, self.df_games_detailed_players, on = 'Id Game', how='left')
-        self.save_df(df)
-        # df = self.df_games_calendar.join(self.df_games_detailed_players, on = 'Id Game')
-        # print(df)
+        print("Save Dataframes...")
+        self.save_df(df, path)
 
 
     def get_df_games(self):
@@ -336,7 +392,7 @@ class RobotScraper:
     def get_df_games_detail(self):
         return self.df_games_detailed_calendar
 
-    def save_df(self, df, path = '../data/'):
+    def save_df(self, df, path):
         df.to_csv(path + 'NBACalendarDataFrame.csv')
 
     @staticmethod

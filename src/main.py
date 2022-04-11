@@ -39,6 +39,7 @@ def get_init_end():
 
     # Default values
     init_date = "20211018"
+    path_file = '../data/'
     end_date = None
 
     if len(sys.argv) > 1:
@@ -54,6 +55,9 @@ def get_init_end():
                 elif sys.argv[cont] in ['-e', '--end'] and len(sys.argv) >= cont + 2:
                     end_date = sys.argv[cont + 1]
                     cont = cont + 2
+                elif sys.argv[cont] in ['-p', '--path'] and len(sys.argv) >= cont + 2:
+                    path_file = sys.argv[cont + 1]
+                    cont = cont + 2
 
                 if cont >= len(sys.argv):
                     exe_loop = False
@@ -62,7 +66,7 @@ def get_init_end():
                 end_date = init_date
 
             init, end = first_week_day(init_date), end_week_day(end_date)
-            return init, end, (end.isocalendar()[1] - init.isocalendar()[1]) + 1, True
+            return init, end, path_file, True
 
         return None, None, None, False
     else:
@@ -71,20 +75,22 @@ def get_init_end():
 
 
 
-init, end, num_semanas, check_param = get_init_end()
+init, end, path_file, check_param = get_init_end()
+
+
+
 
 if check_param:
     rs = RobotScraper()
-    # rs = RobotScraper("https://espndeportes.espn.com/basquetbol/nba/calendario/_/fecha/" + str(10000*init.year + 100*init.month + init.day))
+    i = 0
 
-    for i in range(0, num_semanas):
+    while int(str(end.year) + str(end.isocalendar()[1])) >= int(str((init + (i * timedelta(days=7))).year) + str((init + (i * timedelta(days=7))).isocalendar()[1])):
         rs.set_page("https://espndeportes.espn.com", "/basquetbol/nba/calendario/_/fecha/" + str(10000*(init + (i * timedelta(days=7))).year + 100*(init + (i * timedelta(days=7))).month + (init + (i * timedelta(days=7))).day))
 
         # Extrae los datos generales del calendario
         rs.init_extract()
+        i = i + 1
 
-
-    # Extrae el detalle de los jugadores de cada partido
+    rs.init_extract_game_detail()
     rs.init_extract_players_detail()
-
-    rs.join_info_df()
+    rs.join_info_df(path_file)
