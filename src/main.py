@@ -17,7 +17,7 @@ def print_menu():
     print(" -h, --help\tShow complete menu\n")
     print(" -i, --init\tSet initial date for extract match calendar\n")
     print(" -e, --end\tSet last date for extract match calendar\n")
-    print(" -p, --path\tSet path to load dataset (Default ../data/)\n")
+    print(" -p, --path\tSet path to load dataset (Default ../data)\n")
     print(" Note: If the help parameter (-h, --help) is included, the menu will always be displayed\n")
 
 def first_week_day(date_arg):
@@ -63,35 +63,41 @@ def get_init_end():
                 if cont >= len(sys.argv):
                     exe_loop = False
 
-            if end_date is None:
-                end_date = init_date
 
-            init, end = first_week_day(init_date), end_week_day(end_date)
-            return init, end, path_file, True
+            if int(end_date) >= int(init_date):
 
+                if end_date is None:
+                    end_date = init_date
+
+                init, end = first_week_day(init_date), end_week_day(end_date)
+                return init, end, path_file, True
+            else:
+                print("The end date must be greater than the init date")
+                return None, None, None, False
         return None, None, None, False
     else:
         print("Is necessary include parameters, try python main.py -h")
         return None, None, None, False
 
 
+try:
+    init, end, path_file, check_param = get_init_end()
 
-init, end, path_file, check_param = get_init_end()
+    if check_param:
+        rs = RobotScraper()
+        i = 0
 
+        while int(str(end.year) + str(end.isocalendar()[1])) >= int(str((init + (i * timedelta(days=7))).year) + str((init + (i * timedelta(days=7))).isocalendar()[1])):
+            rs.set_page("https://espndeportes.espn.com", "/basquetbol/nba/calendario/_/fecha/" + str(10000*(init + (i * timedelta(days=7))).year + 100*(init + (i * timedelta(days=7))).month + (init + (i * timedelta(days=7))).day))
 
+            # Extrae los datos generales del calendario
+            rs.init_extract()
+            i = i + 1
 
-
-if check_param:
-    rs = RobotScraper()
-    i = 0
-
-    while int(str(end.year) + str(end.isocalendar()[1])) >= int(str((init + (i * timedelta(days=7))).year) + str((init + (i * timedelta(days=7))).isocalendar()[1])):
-        rs.set_page("https://espndeportes.espn.com", "/basquetbol/nba/calendario/_/fecha/" + str(10000*(init + (i * timedelta(days=7))).year + 100*(init + (i * timedelta(days=7))).month + (init + (i * timedelta(days=7))).day))
-
-        # Extrae los datos generales del calendario
-        rs.init_extract()
-        i = i + 1
-
-    rs.init_extract_game_detail()
-    rs.init_extract_players_detail()
-    rs.join_info_df(path_file)
+        rs.init_extract_game_detail()
+        rs.init_extract_players_detail()
+        rs.join_info_df(path_file)
+except ValueError:
+    print("The input was not a valid integer.")
+except:
+    print("An unknown exception occurred")
