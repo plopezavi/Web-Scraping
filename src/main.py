@@ -17,6 +17,7 @@ def print_menu():
     print(" -h, --help\tShow complete menu\n")
     print(" -i, --init\tSet initial date for extract match calendar\n")
     print(" -e, --end\tSet last date for extract match calendar\n")
+    print(" -p, --path\tSet path to load dataset (Default ../data/)\n")
     print(" Note: If the help parameter (-h, --help) is included, the menu will always be displayed\n")
 
 def first_week_day(date_arg):
