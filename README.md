@@ -12,6 +12,8 @@ Para la extracción se debe ejecutar el main empleando como mínimo el parámetr
 ```
 python main.py -h
 ```
+
+```
 RobotScraper Definition                   Alpha Version
  #######################################################
  ## - Develop Team:                                   ##
@@ -34,11 +36,13 @@ RobotScraper Definition                   Alpha Version
  -p, --path     Set path to load dataset (Default ../data/)
 
  Note: If the help parameter (-h, --help) is included, the menu will always be displayed
+ ```
  
  ## Ejemplo de ejecución
  
 ```
 python main.py -i 20211018 -e 20211101
+```
 ```
 Init extract games data in week 2021-10-18
 Init extract games data in week 2021-10-25
@@ -49,6 +53,7 @@ Init extract detail players data...
 [========================================================================] 100%
 Init join Dataframes...
 Save Dataframes...
+```
 
 ## Develop Team:   
     - Placido A. Lopez Avila
