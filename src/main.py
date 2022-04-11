@@ -9,8 +9,8 @@ def print_menu():
     print(" ##   - Placido A. Lopez Avila                        ##")
     print(" ##   - Alex Pardo Ramos                              ##")
     print(" ##                                                   ##")
-    print(" ## - Alpha Version: 0.1                              ##")
-    print(" ## - Alpha Date: 31/03/2022                          ##")
+    print(" ## - Alpha Version: 1                              ##")
+    print(" ## - Alpha Date: 11/04/2022                          ##")
     print(" #######################################################\n")
     print(" Parameters Definitions:\n")
 
